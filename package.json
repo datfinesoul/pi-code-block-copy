@@ -1,0 +1,26 @@
+{
+  "name": "@datfinesoul/pi-code-block-copy",
+  "version": "0.0.0",
+  "description": "A Pi extension for copying individual code blocks from recent assistant messages.",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "extensions/",
+    "src/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --test"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/code-block-copy/index.ts"
+    ]
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
