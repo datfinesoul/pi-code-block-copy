@@ -58,8 +58,15 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 - Use <kbd>Up</kbd>/<kbd>Down</kbd> to navigate, <kbd>Space</kbd> to select one or more blocks, <kbd>Enter</kbd> to copy, and <kbd>Esc</kbd> to cancel.
 - Press <kbd>Tab</kbd> to switch between the recent view and all history. The recent view is always the newest part of the full list, so a block's number does not change when you switch.
 - Run `/cbc <n>` to copy block `n` from the recent view without opening the picker.
+- Press <kbd>Ctrl</kbd>+<kbd>`</kbd> to run the same copy flow without typing the command.
 - When the recent view contains exactly one block, `/cbc` copies it immediately.
 - Copied blocks are raw code: no fences, no trailing newline, and no indentation that existed only to nest the fence in a list. Selecting several blocks joins them with a blank line.
+
+## Keyboard shortcut
+
+The shortcut is <kbd>Ctrl</kbd>+<kbd>`</kbd>. It behaves like `/cbc` with no argument: it copies the only block immediately when the recent view has one, and otherwise opens the picker. `/cbc <n>` remains the fast path for copying a specific block by number.
+
+Some terminals do not send <kbd>Ctrl</kbd>+<kbd>`</kbd> distinctly from a plain backtick, in which case use `/cbc` instead.
 
 ## How it works
 

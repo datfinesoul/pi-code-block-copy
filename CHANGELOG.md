@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `Ctrl` + backtick shortcut to open the code block picker without typing `/cbc`.
+
 ## [0.1.0] - 2026-10-12
 
 ### Added

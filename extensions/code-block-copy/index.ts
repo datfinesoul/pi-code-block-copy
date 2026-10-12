@@ -215,40 +215,48 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
   });
 }
 
+/** Shared entry point for the `/cbc` command and the keyboard shortcut. */
+async function runCodeBlockCopy(ctx: ExtensionContext, args: string): Promise<void> {
+  if (ctx.mode !== "tui") {
+    ctx.ui.notify("Code block copy requires interactive mode", "warning");
+    return;
+  }
+
+  const recent = buildItems(ctx, RECENT_MESSAGE_LIMIT);
+  if (recent.length === 0) {
+    ctx.ui.notify("No code blocks in the recent assistant messages", "warning");
+    return;
+  }
+
+  const selector = parseSelector(args);
+  if (selector !== null) {
+    const item = recent.find((candidate) => candidate.index === selector);
+    if (!item) {
+      ctx.ui.notify(`No code block ${selector} in the recent messages.`, "warning");
+      return;
+    }
+    await copyItems([item], ctx);
+    return;
+  }
+
+  if (recent.length === 1) {
+    await copyItems(recent, ctx);
+    return;
+  }
+
+  const all = buildItems(ctx, null);
+  const chosen = await openPicker(ctx, recent, all);
+  if (chosen && chosen.length > 0) await copyItems(chosen, ctx);
+}
+
 export default function codeBlockCopy(pi: ExtensionAPI) {
+  pi.registerShortcut(Key.ctrl(Key.backtick), {
+    description: "Copy a code block from a recent assistant message",
+    handler: (ctx) => runCodeBlockCopy(ctx, ""),
+  });
+
   pi.registerCommand("cbc", {
     description: "Copy a code block from a recent assistant message",
-    handler: async (args, ctx) => {
-      if (ctx.mode !== "tui") {
-        ctx.ui.notify("Code block copy requires interactive mode", "warning");
-        return;
-      }
-
-      const recent = buildItems(ctx, RECENT_MESSAGE_LIMIT);
-      if (recent.length === 0) {
-        ctx.ui.notify("No code blocks in the recent assistant messages", "warning");
-        return;
-      }
-
-      const selector = parseSelector(args);
-      if (selector !== null) {
-        const item = recent.find((candidate) => candidate.index === selector);
-        if (!item) {
-          ctx.ui.notify(`No code block ${selector} in the recent messages.`, "warning");
-          return;
-        }
-        await copyItems([item], ctx);
-        return;
-      }
-
-      if (recent.length === 1) {
-        await copyItems(recent, ctx);
-        return;
-      }
-
-      const all = buildItems(ctx, null);
-      const chosen = await openPicker(ctx, recent, all);
-      if (chosen && chosen.length > 0) await copyItems(chosen, ctx);
-    },
+    handler: (args, ctx) => runCodeBlockCopy(ctx, args),
   });
 }
