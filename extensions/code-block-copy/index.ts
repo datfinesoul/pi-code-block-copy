@@ -1,9 +1,9 @@
 /**
  * Code Block Copy: copy individual fenced code blocks from recent assistant messages.
  *
- * `/cbs` lists the code blocks from the most recent assistant messages that
+ * `/cbc` lists the code blocks from the most recent assistant messages that
  * contain any (three by default; Tab switches to all history) and copies the
- * selected blocks to the clipboard. `/cbs <n>` copies block n directly.
+ * selected blocks to the clipboard. `/cbc <n>` copies block n directly.
  */
 
 import { copyToClipboard } from "@earendil-works/pi-coding-agent";
@@ -89,7 +89,7 @@ function groupLabel(rank: number): string {
   return `${rank - 1} messages back`;
 }
 
-/** Parse `/cbs <n>` or `/cbs #<n>`; returns null when the argument is not a positive integer. */
+/** Parse `/cbc <n>` or `/cbc #<n>`; returns null when the argument is not a positive integer. */
 function parseSelector(args: string): number | null {
   const match = args.trim().match(/^#?(\d+)$/);
   if (!match) return null;
@@ -216,7 +216,7 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
 }
 
 export default function codeBlockCopy(pi: ExtensionAPI) {
-  pi.registerCommand("cbs", {
+  pi.registerCommand("cbc", {
     description: "Copy a code block from a recent assistant message",
     handler: async (args, ctx) => {
       if (ctx.mode !== "tui") {

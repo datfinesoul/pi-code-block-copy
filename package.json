@@ -1,9 +1,23 @@
 {
   "name": "@datfinesoul/pi-code-block-copy",
-  "version": "0.0.0",
-  "description": "A Pi extension for copying individual code blocks from recent assistant messages.",
+  "version": "0.1.0",
+  "description": "A Pi extension that copies individual code blocks from recent assistant messages to the clipboard.",
   "type": "module",
   "license": "MIT",
+  "author": "Philip Hadviger <613305+datfinesoul@users.noreply.github.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datfinesoul/pi-code-block-copy.git"
+  },
+  "homepage": "https://github.com/datfinesoul/pi-code-block-copy#readme",
+  "bugs": {
+    "url": "https://github.com/datfinesoul/pi-code-block-copy/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "code-block-copy"
+  ],
   "files": [
     "extensions/",
     "src/",
@@ -13,12 +27,17 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --test"
+    "check": "node --test",
+    "pack:check": "node scripts/pack-check.mjs"
   },
   "pi": {
     "extensions": [
       "./extensions/code-block-copy/index.ts"
     ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
   },
   "engines": {
     "node": ">=22.19.0"
