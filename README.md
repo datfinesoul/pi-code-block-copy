@@ -55,7 +55,8 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 ## Usage
 
 - Run `/cbc` to open the code block picker. It lists the code blocks from the most recent assistant messages that contain any, three messages back by default.
-- Use <kbd>Up</kbd>/<kbd>Down</kbd> to navigate, <kbd>Space</kbd> to select one or more blocks, <kbd>Enter</kbd> to copy, and <kbd>Esc</kbd> to cancel.
+- Use <kbd>Up</kbd>/<kbd>Down</kbd> to navigate, <kbd>Space</kbd> to toggle the highlighted block, or <kbd>1</kbd>–<kbd>9</kbd> to toggle the correspondingly numbered block. Press <kbd>Enter</kbd> to copy checked blocks and <kbd>Esc</kbd> to cancel.
+- Number keys match the labels in the current view; use <kbd>Up</kbd>/<kbd>Down</kbd> and <kbd>Space</kbd> to select blocks numbered 10 and higher.
 - Press <kbd>Tab</kbd> to switch between the recent view and all history. The recent view is always the newest part of the full list, so a block's number does not change when you switch.
 - Run `/cbc <n>` to copy block `n` from the recent view without opening the picker.
 - Press <kbd>Ctrl</kbd>+<kbd>\`</kbd> to run the same copy flow without typing the command.
