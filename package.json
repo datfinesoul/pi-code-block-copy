@@ -1,6 +1,6 @@
 {
   "name": "@datfinesoul/pi-code-block-copy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A Pi extension that copies individual code blocks from recent assistant messages to the clipboard.",
   "type": "module",
   "license": "MIT",
