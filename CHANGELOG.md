@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-20
+
+### Added
+
+- Right/Left arrow expansion of the highlighted block, showing an indentation-preserving preview of up to six source lines with an omitted-line count; the content summary is hidden while expanded and restored on collapse.
+
+### Changed
+
+- Collapsed previews retain combined opening delimiters and show informative content for structural openings, including JSON objects and arrays; structural-only blocks compact to forms such as `[{}]`.
+- Line counts retain space when long excerpts are truncated, and displayed content is sanitized against terminal controls.
+- Expanded preview lines use a dim vertical gutter and a closing corner to distinguish the section from collapsed rows, without a background fill.
+
 ## [0.3.0] - 2026-10-20
 
 ### Added
@@ -33,7 +45,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Fenced code block parser supporting backtick and tilde fences and dedenting content nested in lists.
 - Automated tests and open source project documentation.
 
-[Unreleased]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/datfinesoul/pi-code-block-copy/releases/tag/v0.1.0

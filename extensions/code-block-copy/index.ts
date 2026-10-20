@@ -11,6 +11,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { parseCodeBlocks } from "../../src/code-blocks.js";
 import { toggleNumberedSelection } from "../../src/selection.js";
+import { compactPreview, expandedPreview, safeDisplay } from "../../src/preview.js";
 
 /** How many code-bearing assistant messages the default view reaches back. */
 const RECENT_MESSAGE_LIMIT = 3;
@@ -29,14 +30,7 @@ interface Item {
   language: string;
   code: string;
   lineCount: number;
-  firstLine: string;
-}
-
-/** Remove terminal control sequences before rendering text from the model. */
-function safeDisplay(value: string): string {
-  return value
-    .replace(/\x1B(?:[@-_]|\[[0-?]*[ -/]*[@-~])/g, "")
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  preview: string;
 }
 
 /** Text of every finalized assistant message on the current branch, oldest first. */
@@ -82,7 +76,7 @@ function buildItems(ctx: ExtensionContext, limit: number | null): Item[] {
         language: block.language,
         code: block.code,
         lineCount: lines.length,
-        firstLine: lines.find((line) => line.trim() !== "")?.trim() ?? "",
+        preview: compactPreview(block.code),
       });
     }
   }
@@ -126,14 +120,15 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
     let cursor = 0;
     let scroll = 0;
     let selected = new Set<number>();
+    let expanded = false;
 
     const items = (): Item[] => (scope === "recent" ? recent : all);
     const positionOf = (item: Item): number => items().indexOf(item);
 
-    const buildRows = (width: number): { text: string; item: Item | null }[] => {
+    const buildRows = (width: number, previewBudget: number): { text: string; item: Item | null }[] => {
       const rows: { text: string; item: Item | null }[] = [];
       const activeItems = items();
-      const languageWidth = Math.max(4, ...activeItems.map((item) => visibleWidth(item.language || "code")));
+      const languageWidth = Math.max(4, ...activeItems.map((item) => visibleWidth(safeDisplay(item.language) || "code")));
       let lastRank = 0;
       for (const item of activeItems) {
         if (item.groupRank !== lastRank) {
@@ -144,15 +139,28 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
         const pointer = positionOf(item) === cursor ? theme.fg("accent", "> ") : "  ";
         const state = selected.has(item.index) ? theme.fg("success", "●") : theme.fg("dim", "○");
         const numberIndicator = numberedItemIndicator(item.index);
-        const languageText = item.language || "code";
+        const languageText = safeDisplay(item.language) || "code";
         const language = item.language ? theme.fg("accent", languageText) : theme.fg("dim", languageText);
         const languagePadding = " ".repeat(Math.max(0, languageWidth - visibleWidth(languageText)));
-        const preview = item.firstLine ? theme.fg("muted", ` · ${safeDisplay(item.firstLine)}`) : "";
+        const isExpanded = expanded && positionOf(item) === cursor;
+        const preview = !isExpanded && item.preview ? theme.fg("muted", ` · ${item.preview}`) : "";
         const count = theme.fg("dim", ` (${item.lineCount} ${item.lineCount === 1 ? "line" : "lines"})`);
+        const prefix = `${pointer}${state} ${numberIndicator} ${language}${languagePadding}`;
+        const bodyWidth = Math.max(0, width - visibleWidth(count));
+        const body = truncateToWidth(`${prefix}${preview}`, bodyWidth);
+        const summaryRow = truncateToWidth(`${body}${count}`, width);
         rows.push({
-          text: truncateToWidth(`${pointer}${state} ${numberIndicator} ${language}${languagePadding}${preview}${count}`, width),
+          text: summaryRow,
           item,
         });
+        if (isExpanded) {
+          const previewLines = expandedPreview(item.code, previewBudget);
+          for (const [index, line] of previewLines.entries()) {
+            const marker = index === previewLines.length - 1 ? "└" : "│";
+            const gutter = theme.fg("dim", `      ${marker} `);
+            rows.push({ text: truncateToWidth(`${gutter}${theme.fg("muted", line.slice(6))}`, width), item: null });
+          }
+        }
       }
       return rows;
     };
@@ -163,8 +171,9 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
 
     return {
       render(width: number): string[] {
-        const rows = buildRows(width);
-        const maxView = Math.max(5, tui.terminal.rows - 8);
+        const maxView = Math.max(1, tui.terminal.rows - 7);
+        // Leave room for a group heading, the active item, and scroll indicators.
+        const rows = buildRows(width, Math.max(0, maxView - 4));
         const clipped = rows.length > maxView;
         const view = clipped ? Math.max(1, maxView - 2) : maxView;
         const cursorRow = rows.findIndex((row) => row.item !== null && positionOf(row.item) === cursor);
@@ -173,6 +182,10 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
         if (cursorRow >= 0) {
           if (cursorRow < start) start = cursorRow;
           else if (cursorRow >= start + view) start = cursorRow - view + 1;
+          if (expanded) {
+            const end = cursorRow + 1 + expandedPreview(items()[cursor].code, Math.max(0, maxView - 4)).length;
+            if (end > start + view) start = Math.min(cursorRow, end - view);
+          }
         }
         scroll = start;
 
@@ -191,7 +204,7 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
           "",
           ...visible,
           "",
-          truncateToWidth(theme.fg("dim", " ↑↓ move • 1-9/Space toggle • Tab recent/all • Enter copy • Esc cancel"), width),
+          truncateToWidth(theme.fg("dim", " ↑↓ move • ←→ preview • 1-9/Space toggle • Tab recent/all • Enter copy • Esc cancel"), width),
           theme.fg("accent", "─".repeat(width)),
         ];
       },
@@ -199,8 +212,14 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
       handleInput(data: string): void {
         if (matchesKey(data, Key.up)) {
           cursor -= 1;
+          expanded = false;
         } else if (matchesKey(data, Key.down)) {
           cursor += 1;
+          expanded = false;
+        } else if (matchesKey(data, Key.right)) {
+          expanded = true;
+        } else if (matchesKey(data, Key.left)) {
+          expanded = false;
         } else if (matchesKey(data, Key.space)) {
           const item = items()[cursor];
           if (item) {
@@ -209,6 +228,7 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
           }
         } else if (matchesKey(data, Key.tab)) {
           scope = scope === "recent" ? "all" : "recent";
+          expanded = false;
         } else if (matchesKey(data, Key.enter)) {
           const chosen = all.filter((item) => selected.has(item.index));
           const fallback = items()[cursor];
