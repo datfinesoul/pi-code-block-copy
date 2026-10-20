@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Number keys 1–9 in the picker toggle the matching blocks, making it easy to select multiple blocks before copying.
+- Number keys 1–9 in the picker toggle the matching blocks, making it easy to select multiple blocks before copying; later blocks show a dot in the shortcut column and remain selectable with navigation and Space.
 
 ## [0.2.0] - 2026-10-16
 

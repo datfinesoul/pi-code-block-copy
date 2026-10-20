@@ -16,3 +16,4 @@ export function toggleNumberedSelection(items, selected, index) {
   else next.add(index);
   return next;
 }
+

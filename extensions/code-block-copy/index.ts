@@ -8,13 +8,18 @@
 
 import { copyToClipboard } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { parseCodeBlocks } from "../../src/code-blocks.js";
 import { toggleNumberedSelection } from "../../src/selection.js";
 
 /** How many code-bearing assistant messages the default view reaches back. */
 const RECENT_MESSAGE_LIMIT = 3;
 const NUMBERED_SELECTION_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
+
+/** Show the digit shortcut or a dot when the item has no number shortcut. */
+function numberedItemIndicator(index: number): string {
+  return Number.isInteger(index) && index >= 1 && index <= 9 ? String(index) : "·";
+}
 
 interface Item {
   /** 1-based position in the full newest-first list; the recent view is a prefix of the full list. */
@@ -127,20 +132,25 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
 
     const buildRows = (width: number): { text: string; item: Item | null }[] => {
       const rows: { text: string; item: Item | null }[] = [];
+      const activeItems = items();
+      const languageWidth = Math.max(4, ...activeItems.map((item) => visibleWidth(item.language || "code")));
       let lastRank = 0;
-      for (const item of items()) {
+      for (const item of activeItems) {
         if (item.groupRank !== lastRank) {
           lastRank = item.groupRank;
           if (rows.length > 0) rows.push({ text: "", item: null });
           rows.push({ text: theme.fg("dim", `  ${groupLabel(item.groupRank)}`), item: null });
         }
         const pointer = positionOf(item) === cursor ? theme.fg("accent", "> ") : "  ";
-        const checkbox = selected.has(item.index) ? theme.fg("success", "[x]") : theme.fg("dim", "[ ]");
-        const language = item.language ? theme.fg("accent", item.language) : theme.fg("dim", "code");
+        const state = selected.has(item.index) ? theme.fg("success", "●") : theme.fg("dim", "○");
+        const numberIndicator = numberedItemIndicator(item.index);
+        const languageText = item.language || "code";
+        const language = item.language ? theme.fg("accent", languageText) : theme.fg("dim", languageText);
+        const languagePadding = " ".repeat(Math.max(0, languageWidth - visibleWidth(languageText)));
         const preview = item.firstLine ? theme.fg("muted", ` · ${safeDisplay(item.firstLine)}`) : "";
         const count = theme.fg("dim", ` (${item.lineCount} ${item.lineCount === 1 ? "line" : "lines"})`);
         rows.push({
-          text: truncateToWidth(`${pointer}${checkbox} [${item.index}] ${language}${preview}${count}`, width),
+          text: truncateToWidth(`${pointer}${state} ${numberIndicator} ${language}${languagePadding}${preview}${count}`, width),
           item,
         });
       }
