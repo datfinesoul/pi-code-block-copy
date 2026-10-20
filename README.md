@@ -56,6 +56,8 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 
 - Run `/cbc` to open the code block picker. It lists the code blocks from the most recent assistant messages that contain any, three messages back by default.
 - Use <kbd>Up</kbd>/<kbd>Down</kbd> to navigate, <kbd>Space</kbd> to toggle the highlighted block, or <kbd>1</kbd>–<kbd>9</kbd> to toggle the correspondingly numbered block. Press <kbd>Enter</kbd> to copy checked blocks and <kbd>Esc</kbd> to cancel.
+- Previews retain opening delimiters such as `{` and `[{` and show up to two informative lines when a block starts with structural-only lines. `↵` separates source lines, and `…` marks omitted content. Structural-only blocks compact to forms such as `[{}]`; ordinary code keeps its first-line preview.
+- Press <kbd>Right</kbd> to expand the highlighted block and <kbd>Left</kbd> to collapse it. Expansion preserves indentation (tabs display as four spaces), shows up to six source lines with an omitted-line count, and shrinks on short terminals. Moving or switching recent/all history collapses the preview. Copied code is unchanged.
 - The picker uses <kbd>○</kbd> for unselected blocks and <kbd>●</kbd> for selected blocks. Its number column shows digits 1–9 when shortcuts are available and <kbd>·</kbd> otherwise.
 - Blocks with <kbd>·</kbd> in the number column remain selectable with <kbd>Up</kbd>/<kbd>Down</kbd> and <kbd>Space</kbd>. Press <kbd>Tab</kbd> to switch between the recent view and all history; the first nine blocks keep the same shortcut digits when you switch.
 - Run `/cbc <n>` to copy block `n` from the recent view without opening the picker.
