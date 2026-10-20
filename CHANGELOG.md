@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Right/Left arrow expansion of the highlighted block, showing an indentation-preserving preview of up to six source lines with an omitted-line count.
+- Right/Left arrow expansion of the highlighted block, showing an indentation-preserving preview of up to six source lines with an omitted-line count; the content summary is hidden while expanded and restored on collapse.
 
 ### Changed
 

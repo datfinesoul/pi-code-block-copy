@@ -39,10 +39,14 @@ test("installed Pi picker: expansion, sizing, navigation, selection and copy pay
         assert.match(render(), /\[\{\}\] \(4 lines\)/);
         picker.handleInput('\x1b[C');
         assert.match(render(), /\n        "name": "demo",/);
+        assert.match(render(), /> ○ 1 json\s+\(4 lines\)/);
+        assert.doesNotMatch(render(), /json · \{ …/);
+        assert.match(render(), /\[\{\}\] \(4 lines\)/);
         picker.handleInput('1');
         assert.match(render(), /● 1/);
         picker.handleInput('\x1b[D');
         assert.doesNotMatch(render(), /\n        "name":/);
+        assert.match(render(), /json · \{ … "name": "demo",/);
         picker.handleInput('\x1b[C');
         picker.handleInput('\x1b[B');
         assert.doesNotMatch(render(), /\n        "name":/);

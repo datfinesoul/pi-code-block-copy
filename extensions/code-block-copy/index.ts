@@ -142,7 +142,8 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
         const languageText = safeDisplay(item.language) || "code";
         const language = item.language ? theme.fg("accent", languageText) : theme.fg("dim", languageText);
         const languagePadding = " ".repeat(Math.max(0, languageWidth - visibleWidth(languageText)));
-        const preview = item.preview ? theme.fg("muted", ` · ${item.preview}`) : "";
+        const isExpanded = expanded && positionOf(item) === cursor;
+        const preview = !isExpanded && item.preview ? theme.fg("muted", ` · ${item.preview}`) : "";
         const count = theme.fg("dim", ` (${item.lineCount} ${item.lineCount === 1 ? "line" : "lines"})`);
         const prefix = `${pointer}${state} ${numberIndicator} ${language}${languagePadding}`;
         const bodyWidth = Math.max(0, width - visibleWidth(count));
@@ -151,7 +152,7 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
           text: truncateToWidth(`${body}${count}`, width),
           item,
         });
-        if (expanded && positionOf(item) === cursor) {
+        if (isExpanded) {
           for (const line of expandedPreview(item.code, previewBudget)) {
             rows.push({ text: truncateToWidth(theme.fg("muted", line), width), item: null });
           }
