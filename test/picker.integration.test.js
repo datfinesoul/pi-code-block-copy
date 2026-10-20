@@ -26,32 +26,39 @@ test("installed Pi picker: expansion, sizing, navigation, selection and copy pay
       notify() { assert.fail('Unexpected notification'); },
       async custom(factory) {
         const tui = {terminal: {rows: 24}, requestRender() {}};
-        const theme = {fg: (_color, value) => value, bold: value => value};
+        const theme = {
+          fg: (_color, value) => value,
+          bold: value => value,
+          bg() { assert.fail('Picker must not apply a background'); },
+        };
         let chosen;
         const picker = factory(tui, theme, {}, value => { chosen = value; });
         const render = (width = 100) => {
           const rows = picker.render(width);
           assert.ok(rows.every(line => visibleWidth(line) <= width));
           assert.ok(rows.length <= tui.terminal.rows);
-          return rows.join('\n');
+          return rows.join('\n').replace(/\x1b\[[0-9;]*m/g, '');
         };
         assert.match(render(), /json · \{ … "name": "demo", ↵ "enabled": true … \(4 lines\)/);
         assert.match(render(), /\[\{\}\] \(4 lines\)/);
+        assert.doesNotMatch(render(), /[│└]/);
         picker.handleInput('\x1b[C');
-        assert.match(render(), /\n        "name": "demo",/);
+        assert.equal(picker.render(100).filter(line => /^      [│└] /.test(line)).length, 4);
+        assert.match(render(), /\n      │   "name": "demo",/);
+        assert.match(render(), /\n      └ }/);
         assert.match(render(), /> ○ 1 json\s+\(4 lines\)/);
         assert.doesNotMatch(render(), /json · \{ …/);
         assert.match(render(), /\[\{\}\] \(4 lines\)/);
         picker.handleInput('1');
         assert.match(render(), /● 1/);
         picker.handleInput('\x1b[D');
-        assert.doesNotMatch(render(), /\n        "name":/);
+        assert.doesNotMatch(render(), /[│└]/);
         assert.match(render(), /json · \{ … "name": "demo",/);
         picker.handleInput('\x1b[C');
         picker.handleInput('\x1b[B');
-        assert.doesNotMatch(render(), /\n        "name":/);
+        assert.doesNotMatch(render(), /[│└]/);
         picker.handleInput('\x1b[C');
-        assert.match(render(), /12 more lines/);
+        assert.match(render(), /└ … 12 more lines/);
         for (const height of [12, 16, 24, 40]) {
           tui.terminal.rows = height;
           for (const width of [20, 40, 80, 120]) render(width);

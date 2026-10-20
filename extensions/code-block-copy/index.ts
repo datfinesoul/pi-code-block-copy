@@ -148,13 +148,17 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
         const prefix = `${pointer}${state} ${numberIndicator} ${language}${languagePadding}`;
         const bodyWidth = Math.max(0, width - visibleWidth(count));
         const body = truncateToWidth(`${prefix}${preview}`, bodyWidth);
+        const summaryRow = truncateToWidth(`${body}${count}`, width);
         rows.push({
-          text: truncateToWidth(`${body}${count}`, width),
+          text: summaryRow,
           item,
         });
         if (isExpanded) {
-          for (const line of expandedPreview(item.code, previewBudget)) {
-            rows.push({ text: truncateToWidth(theme.fg("muted", line), width), item: null });
+          const previewLines = expandedPreview(item.code, previewBudget);
+          for (const [index, line] of previewLines.entries()) {
+            const marker = index === previewLines.length - 1 ? "└" : "│";
+            const gutter = theme.fg("dim", `      ${marker} `);
+            rows.push({ text: truncateToWidth(`${gutter}${theme.fg("muted", line.slice(6))}`, width), item: null });
           }
         }
       }

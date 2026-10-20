@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Collapsed previews retain combined opening delimiters and show informative content for structural openings, including JSON objects and arrays; structural-only blocks compact to forms such as `[{}]`.
 - Line counts retain space when long excerpts are truncated, and displayed content is sanitized against terminal controls.
+- Expanded preview lines use a dim vertical gutter and a closing corner to distinguish the section from collapsed rows, without a background fill.
 
 ## [0.3.0] - 2026-10-20
 
