@@ -4,17 +4,18 @@
  * `/cbc` lists the code blocks from the most recent assistant messages that
  * contain any (three by default; Tab switches to all history) and copies the
  * selected blocks to the clipboard. `/cbc <n>` copies block n directly.
+ * `/cbc all` always opens the picker in all-history mode.
  */
 
-import { copyToClipboard } from "@earendil-works/pi-coding-agent";
+import { fileURLToPath } from "node:url";
+import { loadConfig } from "../../src/config.js";
+import { CONFIG_DIR_NAME, getAgentDir, copyToClipboard } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { parseCodeBlocks } from "../../src/code-blocks.js";
 import { toggleNumberedSelection } from "../../src/selection.js";
 import { compactPreview, expandedPreview, safeDisplay } from "../../src/preview.js";
 
-/** How many code-bearing assistant messages the default view reaches back. */
-const RECENT_MESSAGE_LIMIT = 3;
 const NUMBERED_SELECTION_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 
 /** Show the digit shortcut or a dot when the item has no number shortcut. */
@@ -98,13 +99,13 @@ function parseSelector(args: string): number | null {
   return value >= 1 ? value : null;
 }
 
-async function copyItems(items: Item[], ctx: ExtensionContext): Promise<void> {
+async function copyItems(items: Item[], ctx: ExtensionContext, quickCopy = false): Promise<void> {
   const text = items.map((item) => item.code).join("\n\n");
   try {
     await copyToClipboard(text);
     ctx.ui.notify(
       items.length === 1
-        ? `Copied code block ${items[0].index} to the clipboard`
+        ? `Copied code block ${items[0].index} to the clipboard${quickCopy ? ' • "/cbc all" to browse all blocks' : ""}`
         : `Copied ${items.length} code blocks to the clipboard`,
       "info",
     );
@@ -114,9 +115,9 @@ async function copyItems(items: Item[], ctx: ExtensionContext): Promise<void> {
 }
 
 /** Interactively pick one or more blocks. `recent` is always a prefix of `all`. */
-async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): Promise<Item[] | null> {
+async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[], recentMessageLimit: number, initialScope: "recent" | "all" = "recent"): Promise<Item[] | null> {
   return ctx.ui.custom<Item[] | null>((tui, theme, _keybindings, done) => {
-    let scope: "recent" | "all" = "recent";
+    let scope: "recent" | "all" = initialScope;
     let cursor = 0;
     let scroll = 0;
     let selected = new Set<number>();
@@ -197,7 +198,7 @@ async function openPicker(ctx: ExtensionContext, recent: Item[], all: Item[]): P
           visible.push(below > 0 ? theme.fg("dim", `  ↓ ${below} more`) : "");
         }
 
-        const scopeLabel = scope === "recent" ? `last ${RECENT_MESSAGE_LIMIT} messages with code` : "all history";
+        const scopeLabel = scope === "recent" ? `last ${recentMessageLimit} ${recentMessageLimit === 1 ? "message" : "messages"} with code` : "all history";
         return [
           theme.fg("accent", "─".repeat(width)),
           truncateToWidth(` ${theme.fg("accent", theme.bold(`Code blocks — ${scopeLabel}`))}`, width),
@@ -258,7 +259,15 @@ async function runCodeBlockCopy(ctx: ExtensionContext, args: string): Promise<vo
     return;
   }
 
-  const recent = buildItems(ctx, RECENT_MESSAGE_LIMIT);
+  const { recentMessageLimit, warnings } = loadConfig({
+    bundledPath: fileURLToPath(new URL("./config.json", import.meta.url)),
+    agentDir: getAgentDir(),
+    cwd: ctx.cwd,
+    projectTrusted: ctx.isProjectTrusted(),
+    projectConfigDir: CONFIG_DIR_NAME,
+  });
+  for (const warning of warnings) ctx.ui.notify(warning, "warning");
+  const recent = buildItems(ctx, recentMessageLimit);
   if (recent.length === 0) {
     ctx.ui.notify("No code blocks in the recent assistant messages", "warning");
     return;
@@ -275,13 +284,14 @@ async function runCodeBlockCopy(ctx: ExtensionContext, args: string): Promise<vo
     return;
   }
 
-  if (recent.length === 1) {
-    await copyItems(recent, ctx);
+  const showAll = args.trim() === "all";
+  if (!showAll && recent.length === 1) {
+    await copyItems(recent, ctx, true);
     return;
   }
 
   const all = buildItems(ctx, null);
-  const chosen = await openPicker(ctx, recent, all);
+  const chosen = await openPicker(ctx, recent, all, recentMessageLimit, showAll ? "all" : "recent");
   if (chosen && chosen.length > 0) await copyItems(chosen, ctx);
 }
 
@@ -292,7 +302,7 @@ export default function codeBlockCopy(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("cbc", {
-    description: "Copy a code block from a recent assistant message",
+    description: "Copy a recent code block, or use /cbc all to browse all history",
     handler: (args, ctx) => runCodeBlockCopy(ctx, args),
   });
 }

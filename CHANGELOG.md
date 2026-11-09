@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
+### Added
+
+- Configure `recentMessageLimit` from 1 to 20 through global or trusted project settings. The default remains 3 messages with code.
+- The picker label shows the configured limit. A recent view with exactly one block copies immediately, including when the limit is 1.
+- Invalid configuration produces a warning and retains the lower-priority setting.
+- `/cbc all` opens the picker in all-history mode and bypasses quick copy. Quick-copy notifications show the command to browse all blocks.
+
 ## [0.4.0] - 2026-10-20
 
 ### Added
@@ -45,7 +54,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Fenced code block parser supporting backtick and tilde fences and dedenting content nested in lists.
 - Automated tests and open source project documentation.
 
-[Unreleased]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.1.0...v0.2.0

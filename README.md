@@ -24,6 +24,8 @@ pi install --local git:github.com/datfinesoul/pi-code-block-copy
 
 Project packages load only after Pi grants project trust. Run `/reload` in an existing Pi session or start a new session after either type of installation.
 
+Installation scope and [configuration layers](#configuration) are independent. Both installation types read global settings and trusted project settings.
+
 > [!NOTE]
 > Pi identifies a package by where it was installed from. Installing pi-code-block-copy globally and for a project from the same source is fine: the project installation replaces the global one. Installing it from different locations, such as GitHub globally and a local checkout for a project, loads both copies, and Pi does not reconcile them.
 
@@ -60,10 +62,43 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 - Press <kbd>Right</kbd> to expand the highlighted block and <kbd>Left</kbd> to collapse it. Expansion marks preview lines with a dim vertical gutter, hides that row's content summary until collapsed, preserves indentation (tabs display as four spaces), shows up to six source lines with an omitted-line count, and shrinks on short terminals. Moving or switching recent/all history collapses the preview. Copied code is unchanged.
 - The picker uses <kbd>○</kbd> for unselected blocks and <kbd>●</kbd> for selected blocks. Its number column shows digits 1–9 when shortcuts are available and <kbd>·</kbd> otherwise.
 - Blocks with <kbd>·</kbd> in the number column remain selectable with <kbd>Up</kbd>/<kbd>Down</kbd> and <kbd>Space</kbd>. Press <kbd>Tab</kbd> to switch between the recent view and all history; the first nine blocks keep the same shortcut digits when you switch.
+- Run `/cbc all` to open the picker in all-history mode, even when only one block exists. Press <kbd>Tab</kbd> to switch to the recent view.
 - Run `/cbc <n>` to copy block `n` from the recent view without opening the picker.
 - Press <kbd>Ctrl</kbd>+<kbd>\`</kbd> to run the same copy flow without typing the command.
-- When the recent view contains exactly one block, `/cbc` copies it immediately.
+- When the recent view contains exactly one block, `/cbc` copies it immediately. The notification shows `/cbc all` as the command to browse all blocks.
 - Copied blocks are raw code: no fences, no trailing newline, and no indentation that existed only to nest the fence in a list. Selecting several blocks joins them with a blank line.
+
+## Configuration
+
+Settings merge from lowest to highest priority:
+
+| Layer | Location |
+|---|---|
+| Bundled | `extensions/code-block-copy/config.json` |
+| Global | `~/.pi/agent/code-block-copy.json` (follows `PI_CODING_AGENT_DIR`) |
+| Project | `<project>/.pi/code-block-copy.json`, only when Pi trusts the project |
+
+A higher-priority `recentMessageLimit` replaces the lower-priority value. Missing fields retain the lower-priority value. Invalid values or files produce a warning and retain the lower-priority value. The extension reads these settings each time you use `/cbc` or the shortcut.
+
+### Change the recent view
+
+Add this setting to the global or project file:
+
+```json
+{
+  "recentMessageLimit": 1
+}
+```
+
+This setting includes only the latest assistant message with non-empty code blocks. If that message contains exactly one block, `/cbc` and the shortcut copy it immediately. If it contains multiple blocks, the picker opens. Use `/cbc all` to browse all history without quick copy. Press <kbd>Tab</kbd> in the picker to switch between recent messages and all history.
+
+### Field reference
+
+| Field | Default | Accepted values | Meaning |
+|---|---|---|---|
+| `recentMessageLimit` | `3` | Integers from `1` to `20` | Number of recent assistant messages with non-empty code blocks to include |
+
+Zero, negative numbers, fractions, and values above 20 are invalid. The limit counts messages, not individual blocks.
 
 ## Keyboard shortcut
 
@@ -86,7 +121,7 @@ npm run pack:check
 
 Use `pnpm test` and `pnpm run pack:check` when you use pnpm.
 
-Every pull request that triggers CI must bump `version` in `package.json` and move the `Unreleased` changelog entries under a matching `## [<version>] - <date>` heading; CI fails otherwise. Pull requests that change only Markdown skipped by CI are exempt. After the merge to `main` passes CI, the Release workflow tags that commit `v<version>`. Merges that do not change the version are not tagged.
+Each feature branch that triggers CI gets one version update relative to its base. Keep that version unchanged throughout the branch. Record subsequent user-visible changes under the same matching `## [<version>] - <date>` changelog heading. Do not increment the patch version for each edit, fix, or conversation turn. CI requires the branch version to exceed its base version. Pull requests that change only Markdown skipped by CI are exempt. After merge and successful CI, the Release workflow tags the tested commit `v<version>`. Merges that do not change the version are not tagged.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
