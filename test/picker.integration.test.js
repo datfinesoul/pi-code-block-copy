@@ -21,6 +21,8 @@ test("installed Pi picker: expansion, sizing, navigation, selection and copy pay
   const text = ['```json', code, '```', '```text', long, '```', '```json', '[\n  {\n}\n]', '```'].join('\n');
   await command.handler('', {
     mode: 'tui',
+    cwd: process.cwd(),
+    isProjectTrusted: () => false,
     sessionManager: { getBranch: () => [{ type: 'message', message: { role: 'assistant', content: [{type: 'text', text}] } }] },
     ui: {
       notify() { assert.fail('Unexpected notification'); },
