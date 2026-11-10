@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { toggleNumberedSelection } from "../src/selection.js";
+import { toggleNumberedSelection } from "../src/selection.ts";
 
 const items = (count) => Array.from({ length: count }, (_, index) => ({ index: index + 1 }));
 

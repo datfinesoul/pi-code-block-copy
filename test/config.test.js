@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { loadConfig } from "../src/config.js";
+import { loadConfig } from "../src/config.ts";
 
 function load(files = {}, projectTrusted = true) {
   const reads = [];

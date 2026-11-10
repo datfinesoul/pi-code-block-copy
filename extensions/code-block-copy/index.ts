@@ -8,13 +8,13 @@
  */
 
 import { fileURLToPath } from "node:url";
-import { loadConfig } from "../../src/config.js";
+import { loadConfig } from "../../src/config.ts";
 import { CONFIG_DIR_NAME, getAgentDir, copyToClipboard } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { parseCodeBlocks } from "../../src/code-blocks.js";
-import { toggleNumberedSelection } from "../../src/selection.js";
-import { compactPreview, expandedPreview, safeDisplay } from "../../src/preview.js";
+import { parseCodeBlocks } from "../../src/code-blocks.ts";
+import { toggleNumberedSelection } from "../../src/selection.ts";
+import { compactPreview, expandedPreview, safeDisplay } from "../../src/preview.ts";
 
 const NUMBERED_SELECTION_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 
