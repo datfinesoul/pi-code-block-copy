@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { parseCodeBlocks } from "../src/code-blocks.js";
+import { parseCodeBlocks } from "../src/code-blocks.ts";
 
 const fence = (language, code) => ["```" + language, code, "```"].join("\n");
 

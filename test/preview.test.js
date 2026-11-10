@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { compactPreview, expandedPreview, safeDisplay } from "../src/preview.js";
+import { compactPreview, expandedPreview, safeDisplay } from "../src/preview.ts";
 
 test("object excerpts retain opening shape and two informative lines", () => {
   assert.equal(compactPreview('{\n  "name": "demo",\n  "enabled": true\n}'), '{ … "name": "demo", ↵ "enabled": true …');
