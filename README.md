@@ -67,6 +67,7 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 - Press <kbd>Ctrl</kbd>+<kbd>\`</kbd> to run the same copy flow without typing the command.
 - When the recent view contains exactly one block, `/cbc` copies it immediately. The notification shows `/cbc all` as the command to browse all blocks.
 - Copied blocks are raw code: no fences, no trailing newline, and no indentation that existed only to nest the fence in a list. Selecting several blocks joins them with a blank line.
+- Blocks can use the exact `│ ` prefix before each fence and code line. CBC removes this prefix and applies its usual fence-indent removal. Other code indentation, tabs, and literal bars remain unchanged. A bare `│` represents an empty line. If the prefix ends before the closing fence, the block stops there. Other box characters and nested prefixes are not supported.
 
 ## Configuration
 

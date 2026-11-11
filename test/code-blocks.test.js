@@ -66,6 +66,92 @@ test("parses every block in order", () => {
   );
 });
 
+test("parses the operator-run example without its wrapper or surrounding prose", () => {
+  const markdown = [
+    "A1 — Next · Operator-run", "", "│ Initialize through each stack’s intended backend.", "│",
+    "│ ```bash", "│ tofu fmt -check", "│ tofu validate", "│ ```", "│",
+    "│ Production review must confirm no replacement/deletion.",
+  ].join("\n");
+  assert.deepEqual(parseCodeBlocks(markdown), [{
+    language: "bash", info: "bash", code: "tofu fmt -check\ntofu validate",
+    startLine: 5, endLine: 8, closed: true,
+  }]);
+});
+
+test("wrapped blocks preserve nested spaces, tabs, trailing spaces, and literal bars", () => {
+  const code = 'def check():\n    if ready:\n        validate()  \n\tprint("│ keep this")\n│ literal leading bar';
+  const markdown = fence("python", code).split("\n").map(line => "│ " + line).join("\n");
+  assert.equal(parseCodeBlocks(markdown)[0].code, code);
+});
+
+test("wrapped blocks remove only the opening fence indent, not a common code indent", () => {
+  const markdown = ["│   ```py", "│       first()", "│         second()", "│  x", "│   ```"].join("\n");
+  assert.equal(parseCodeBlocks(markdown)[0].code, "    first()\n      second()\nx");
+});
+
+test("wrapped blocks preserve bare and prefixed empty lines and whitespace-only lines", () => {
+  const markdown = ["│ ```text", "│", "│ one", "│ ", "│   ", "│ two", "│", "│ ```"].join("\n");
+  assert.equal(parseCodeBlocks(markdown)[0].code, "\none\n\n  \ntwo\n");
+});
+
+test("wrapped blocks retain normal fence matching rules", () => {
+  const markdown = ["│ ~~~~md", "│ ~~~", "│ ```", "│ ~~~~not-a-close", "│ ~~~~~"].join("\n");
+  const [block] = parseCodeBlocks(markdown);
+  assert.equal(block.code, "~~~\n```\n~~~~not-a-close");
+  assert.equal(block.closed, true);
+  assert.deepEqual(parseCodeBlocks("│ ```a`b\n│ text"), []);
+});
+
+test("wrapped and ordinary blocks appear in source order with original line numbers", () => {
+  const markdown = [fence("sh", "one"), "│ ```py", "│   two()", "│ ```", fence("js", "three")].join("\r\n");
+  const blocks = parseCodeBlocks(markdown);
+  assert.deepEqual(blocks.map(block => block.code), ["one", "  two()", "three"]);
+  assert.deepEqual(blocks.map(block => [block.startLine, block.endLine]), [[1, 3], [4, 6], [7, 9]]);
+});
+
+test("unclosed wrapped blocks stop before an unwrapped fence and revisit the boundary", () => {
+  const markdown = ["│ ```py", "│     one()", "```sh", "two", "```"].join("\n");
+  const blocks = parseCodeBlocks(markdown);
+  assert.equal(blocks.length, 2);
+  assert.deepEqual(blocks[0], {
+    language: "py", info: "py", code: "    one()", startLine: 1, endLine: 2, closed: false,
+  });
+  assert.equal(blocks[1].code, "two");
+  assert.equal(blocks[1].startLine, 3);
+});
+
+test("wrapped blocks stop at prose, missing prefixes, or changed wrappers", () => {
+  for (const boundary of ["Outside prose", "", "│missing space", "┃ changed bar", " │ shifted bar"]) {
+    const markdown = ["│ ```sh", "│ echo hi", boundary, "│ not code"].join("\n");
+    const [block] = parseCodeBlocks(markdown);
+    assert.equal(block.code, "echo hi");
+    assert.equal(block.endLine, 2);
+    assert.equal(block.closed, false);
+  }
+});
+
+test("unclosed wrapped blocks handle end of input and an immediate wrapper boundary", () => {
+  const [block] = parseCodeBlocks("│ ```py\n│     one()");
+  assert.equal(block.code, "    one()");
+  assert.equal(block.endLine, 2);
+  assert.equal(block.closed, false);
+  const [empty] = parseCodeBlocks("│ ```py\nOutside prose");
+  assert.equal(empty.code, "");
+  assert.equal(empty.endLine, 1);
+  assert.equal(empty.closed, false);
+});
+
+test("does not recognize other wrapper styles or nested wrappers", () => {
+  for (const prefix of ["┃ ", "│", "│\t", " │ ", "│ │ ", "> "]) {
+    assert.deepEqual(parseCodeBlocks(fence("sh", "echo hi").split("\n").map(line => prefix + line).join("\n")), []);
+  }
+});
+
+test("ordinary blocks preserve literal wrapper text in their body", () => {
+  const code = "│ ```sh\n│     echo hi\n│ ```";
+  assert.equal(parseCodeBlocks(["````text", code, "````"].join("\n"))[0].code, code);
+});
+
 test("an unclosed fence extends to the end and is marked unclosed", () => {
   const blocks = parseCodeBlocks(["```ts", "let a = 1;"].join("\n"));
   assert.equal(blocks.length, 1);
