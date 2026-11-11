@@ -6,7 +6,7 @@
  * more than three spaces, and a closing fence of the same character and at
  * least the same length. Content is dedented by up to the opening fence's
  * indentation, so a block nested in a list loses the list indent.
- * Blocks wrapped with the exact "│ " prefix lose only that wrapper before
+ * Blocks wrapped with the exact "> " or "│ " prefix lose only that wrapper before
  * the same fence and indentation rules apply.
  */
 
@@ -17,15 +17,16 @@ const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
  * Extract every fenced code block from Markdown text.
  *
  * @param {string} markdown
+ * @param {{ parseQuotedBlocks?: boolean }} [options]
  * @returns {{ language: string, info: string, code: string, startLine: number, endLine: number, closed: boolean }[]}
  */
-export function parseCodeBlocks(markdown) {
+export function parseCodeBlocks(markdown, { parseQuotedBlocks = true } = {}) {
   const lines = String(markdown ?? "").split(/\r?\n/);
   const blocks = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const wrapped = lines[i].startsWith("│ ");
-    const open = FENCE.exec(wrapped ? stripWrapper(lines[i]) : lines[i]);
+    const wrapper = parseQuotedBlocks && (lines[i].startsWith("> ") || lines[i].startsWith("│ ")) ? lines[i][0] : null;
+    const open = FENCE.exec(wrapper ? stripWrapper(lines[i], wrapper) : lines[i]);
     if (!open) continue;
 
     const indent = open[1];
@@ -39,7 +40,7 @@ export function parseCodeBlocks(markdown) {
     let closeLine = -1;
     let j = i + 1;
     for (; j < lines.length; j++) {
-      const line = wrapped ? stripWrapper(lines[j]) : lines[j];
+      const line = wrapper ? stripWrapper(lines[j], wrapper) : lines[j];
       // An unfinished wrapped block must not consume text outside its wrapper.
       if (line === null) break;
       const close = FENCE.exec(line);
@@ -67,10 +68,10 @@ export function parseCodeBlocks(markdown) {
   return blocks;
 }
 
-/** Remove one exact wrapper, accepting a bare bar only as an empty line. */
-function stripWrapper(line) {
-  if (line === "│") return "";
-  return line.startsWith("│ ") ? line.slice(2) : null;
+/** Remove the opening fence's exact wrapper, accepting a bare marker as an empty line. */
+function stripWrapper(line, marker) {
+  if (line === marker) return "";
+  return line.startsWith(marker + " ") ? line.slice(2) : null;
 }
 
 /** Remove up to `count` leading spaces from a line. */

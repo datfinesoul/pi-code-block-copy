@@ -142,7 +142,7 @@ test("unclosed wrapped blocks handle end of input and an immediate wrapper bound
 });
 
 test("does not recognize other wrapper styles or nested wrappers", () => {
-  for (const prefix of ["┃ ", "│", "│\t", " │ ", "│ │ ", "> "]) {
+  for (const prefix of ["┃ ", "│", "│\t", " │ ", "│ │ ", ">>", "> > "]) {
     assert.deepEqual(parseCodeBlocks(fence("sh", "echo hi").split("\n").map(line => prefix + line).join("\n")), []);
   }
 });
@@ -150,6 +150,63 @@ test("does not recognize other wrapper styles or nested wrappers", () => {
 test("ordinary blocks preserve literal wrapper text in their body", () => {
   const code = "│ ```sh\n│     echo hi\n│ ```";
   assert.equal(parseCodeBlocks(["````text", code, "````"].join("\n"))[0].code, code);
+});
+
+test("wrapped parsing defaults to enabled and can be disabled without changing ordinary blocks", () => {
+  const wrapped = "│ ```py\n│     wrapped()\n│ ```";
+  assert.equal(parseCodeBlocks(wrapped)[0].code, "    wrapped()");
+  assert.equal(parseCodeBlocks(wrapped, { parseQuotedBlocks: true })[0].code, "    wrapped()");
+  assert.deepEqual(parseCodeBlocks(wrapped, { parseQuotedBlocks: false }), []);
+  const plain = fence("sh", "  echo hi\n│ literal content\n\tmore");
+  assert.deepEqual(parseCodeBlocks([wrapped, plain].join("\n"), { parseQuotedBlocks: false }), [
+    { ...parseCodeBlocks(plain)[0], startLine: 4, endLine: 8 },
+  ]);
+});
+
+test("parses the Markdown blockquote operator-run example", () => {
+  const markdown = [
+    "**Legend:** A = Action", "", "**A1 — Next · Operator-run**",
+    "> Initialize through each stack’s intended backend and generate whole-stack plans, preferably **PoC first**.",
+    ">", "> After initialization, run these checks from the relevant stack directory:", ">",
+    "> ```bash", "> tofu fmt -check", "> tofu validate", "> ```", ">",
+    "> Production review must confirm no bucket, role, or lock-table replacement/deletion and no trust removal.",
+  ].join("\n");
+  assert.deepEqual(parseCodeBlocks(markdown), [{
+    language: "bash", info: "bash", code: "tofu fmt -check\ntofu validate",
+    startLine: 8, endLine: 11, closed: true,
+  }]);
+  assert.deepEqual(parseCodeBlocks(markdown, { parseQuotedBlocks: false }), []);
+});
+
+for (const marker of [">", "│"]) {
+  test(`${marker} quotes preserve indentation, blank lines, tabs, and literal markers`, () => {
+    const code = ['def check():', '    if ready:', '        validate()  ', '', '\tprint("> and │")', '> literal', '│ literal'];
+    const markdown = [marker + " ```python", ...code.map(line => line ? marker + " " + line : marker), marker + " ```"].join("\n");
+    assert.equal(parseCodeBlocks(markdown)[0].code, code.join("\n"));
+    assert.deepEqual(parseCodeBlocks(markdown, { parseQuotedBlocks: false }), []);
+    const indented = [marker + "   ~~~py", marker + "       check()", marker + "   ~~~"].join("\n");
+    assert.equal(parseCodeBlocks(indented)[0].code, "    check()");
+  });
+
+  test(`${marker} quotes stop when the marker changes and continue parsing later blocks`, () => {
+    const other = marker === ">" ? "│" : ">";
+    const markdown = [marker + " ```sh", marker + " echo first", other + " ```py", other + "     second()", other + " ```"].join("\n");
+    assert.deepEqual(parseCodeBlocks(markdown), [
+      { language: "sh", info: "sh", code: "echo first", startLine: 1, endLine: 2, closed: false },
+      { language: "py", info: "py", code: "    second()", startLine: 3, endLine: 5, closed: true },
+    ]);
+    const outside = [marker + " ```sh", marker + " echo first", "Outside prose", fence("sh", "echo last")].join("\n");
+    assert.deepEqual(parseCodeBlocks(outside).map(block => block.code), ["echo first", "echo last"]);
+  });
+}
+
+test("ordinary and quoted blocks retain order while disabling quotes leaves ordinary content intact", () => {
+  const plain = fence("sh", "echo ordinary\n> literal quote\n│ literal bar");
+  const markdown = [plain, "> ```py", ">     quoted()", "> ```", "│ ```py", "│     wrapped()", "│ ```"].join("\n");
+  assert.deepEqual(parseCodeBlocks(markdown).map(block => block.code), [
+    "echo ordinary\n> literal quote\n│ literal bar", "    quoted()", "    wrapped()",
+  ]);
+  assert.deepEqual(parseCodeBlocks(markdown, { parseQuotedBlocks: false }), parseCodeBlocks(plain));
 });
 
 test("an unclosed fence extends to the end and is marked unclosed", () => {

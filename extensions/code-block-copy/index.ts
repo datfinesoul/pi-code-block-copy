@@ -58,13 +58,13 @@ function assistantTexts(ctx: ExtensionContext): string[] {
  * Code blocks, newest message first. `limit` caps how many code-bearing
  * messages are included; `null` includes all history.
  */
-function buildItems(ctx: ExtensionContext, limit: number | null): Item[] {
+function buildItems(ctx: ExtensionContext, limit: number | null, parseQuotedBlocks: boolean): Item[] {
   const texts = assistantTexts(ctx);
   const items: Item[] = [];
   let groupRank = 0;
 
   for (let position = texts.length - 1; position >= 0; position--) {
-    const blocks = parseCodeBlocks(texts[position]).filter((block) => block.code.trim() !== "");
+    const blocks = parseCodeBlocks(texts[position], { parseQuotedBlocks }).filter((block) => block.code.trim() !== "");
     if (blocks.length === 0) continue;
     groupRank += 1;
     if (limit !== null && groupRank > limit) break;
@@ -259,7 +259,7 @@ async function runCodeBlockCopy(ctx: ExtensionContext, args: string): Promise<vo
     return;
   }
 
-  const { recentMessageLimit, warnings } = loadConfig({
+  const { recentMessageLimit, parseQuotedBlocks, warnings } = loadConfig({
     bundledPath: fileURLToPath(new URL("./config.json", import.meta.url)),
     agentDir: getAgentDir(),
     cwd: ctx.cwd,
@@ -267,7 +267,7 @@ async function runCodeBlockCopy(ctx: ExtensionContext, args: string): Promise<vo
     projectConfigDir: CONFIG_DIR_NAME,
   });
   for (const warning of warnings) ctx.ui.notify(warning, "warning");
-  const recent = buildItems(ctx, recentMessageLimit);
+  const recent = buildItems(ctx, recentMessageLimit, parseQuotedBlocks);
   if (recent.length === 0) {
     ctx.ui.notify("No code blocks in the recent assistant messages", "warning");
     return;
@@ -290,7 +290,7 @@ async function runCodeBlockCopy(ctx: ExtensionContext, args: string): Promise<vo
     return;
   }
 
-  const all = buildItems(ctx, null);
+  const all = buildItems(ctx, null, parseQuotedBlocks);
   const chosen = await openPicker(ctx, recent, all, recentMessageLimit, showAll ? "all" : "recent");
   if (chosen && chosen.length > 0) await copyItems(chosen, ctx);
 }

@@ -10,8 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Copy fenced code blocks with the exact `│ ` prefix. Remove the prefix and preserve code indentation, tabs, and literal bars.
-- Accept a bare `│` as an empty line inside these blocks. Unclosed blocks stop where the prefix ends.
+- Copy fenced code blocks inside Markdown blockquotes with the exact `> ` prefix, or with the literal `│ ` prefix. Preserve code indentation, tabs, and literal markers.
+- Accept a bare `>` or `│` as an empty line in its matching quote. Unclosed blocks stop where the prefix ends or changes.
+- Configure `parseQuotedBlocks` through global or trusted project settings. The default is `true`. Set it to `false` to exclude quoted blocks before numbering and recent-message counting.
 
 ## [0.5.1] - 2026-11-10
 

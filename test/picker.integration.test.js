@@ -19,7 +19,7 @@ test("installed Pi picker: expansion, sizing, navigation, selection and copy pay
   const code = '{\n  "name": "demo",\n  "enabled": true\n}';
   const long = Array.from({length: 18}, (_, i) => `line ${i}`).join('\n');
   // Wrapped source must reach the picker and copy payload without losing code indentation.
-  const wrapped = ['```json', code, '```'].join('\n').split('\n').map(line => '│ ' + line).join('\n');
+  const wrapped = ['```json', code, '```'].join('\n').split('\n').map(line => '> ' + line).join('\n');
   const text = [wrapped, '```text', long, '```', '```json', '[\n  {\n}\n]', '```'].join('\n');
   await command.handler('', {
     mode: 'tui',

@@ -99,6 +99,51 @@ export const copyToClipboard = async text => { copied.push(text); };
     assert.ok(notifications.some(item => item.level === "warning" && /integer from 1 to 20/.test(item.text)));
     ctx.isProjectTrusted = () => false;
     await command.handler("", ctx);
+
+    // Re-read the toggle on each invocation, before numbering or counting messages.
+    ctx.isProjectTrusted = () => true;
+    const wrapped = "> ```py\n>     wrapped()\n> ```";
+    const ordinary = "```sh\n  ordinary\n```";
+    const setWrapped = value => writeFileSync(configPath, JSON.stringify({ recentMessageLimit: 1, parseQuotedBlocks: value }));
+    branch = [message("```\nolder\n```"), message(wrapped)];
+    setWrapped(false);
+    await command.handler("", ctx);
+    assert.equal(host.copied.at(-1), "older");
+    await shortcut.handler(ctx);
+    assert.equal(host.copied.at(-1), "older");
+    setWrapped(true);
+    await command.handler("", ctx);
+    assert.equal(host.copied.at(-1), "    wrapped()");
+
+    branch = [message("```\nolder\n```"), message([wrapped, ordinary].join("\n"))];
+    setWrapped(false);
+    await command.handler("1", ctx);
+    assert.equal(host.copied.at(-1), "  ordinary");
+    await command.handler("2", ctx);
+    assert.match(notifications.at(-1).text, /No code block 2/);
+    ctx.ui.custom = async factory => {
+      const picker = factory({ terminal: { rows: 80 }, requestRender() {} }, { fg: (_c, text) => text, bold: text => text }, {}, () => {});
+      const render = () => picker.render(160).join("\n");
+      assert.match(render(), /all history/);
+      assert.match(render(), /1 sh\s+· ordinary/);
+      assert.match(render(), /2 code\s+· older/);
+      assert.doesNotMatch(render(), /wrapped\(\)/);
+      picker.handleInput("\t");
+      assert.doesNotMatch(render(), /older|wrapped\(\)/);
+      return null;
+    };
+    await command.handler("all", ctx);
+    setWrapped(true);
+    await command.handler("1", ctx);
+    assert.equal(host.copied.at(-1), "    wrapped()");
+    await command.handler("2", ctx);
+    assert.equal(host.copied.at(-1), "  ordinary");
+    ctx.ui.custom = async factory => {
+      const picker = factory({ terminal: { rows: 80 }, requestRender() {} }, { fg: (_c, text) => text, bold: text => text }, {}, () => {});
+      assert.match(picker.render(160).join("\n"), /wrapped\(\)/);
+      return null;
+    };
+    await shortcut.handler(ctx);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

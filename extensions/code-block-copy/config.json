@@ -1,3 +1,4 @@
 {
-  "recentMessageLimit": 3
+  "recentMessageLimit": 3,
+  "parseQuotedBlocks": true
 }
