@@ -18,16 +18,16 @@ export function loadConfig({ bundledPath, agentDir, cwd, projectTrusted, project
         throw new Error("expected a JSON object");
       }
       const limit = Object.hasOwn(config, "recentMessageLimit") ? config.recentMessageLimit : recentMessageLimit;
-      const wrapped = Object.hasOwn(config, "parseQuotedBlocks") ? config.parseQuotedBlocks : parseQuotedBlocks;
+      const quoted = Object.hasOwn(config, "parseQuotedBlocks") ? config.parseQuotedBlocks : parseQuotedBlocks;
+      const errors = [];
       if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RECENT_MESSAGE_LIMIT) {
-        throw new Error(`recentMessageLimit must be an integer from 1 to ${MAX_RECENT_MESSAGE_LIMIT}`);
+        errors.push(`recentMessageLimit must be an integer from 1 to ${MAX_RECENT_MESSAGE_LIMIT}`);
       }
-      if (typeof wrapped !== "boolean") {
-        throw new Error("parseQuotedBlocks must be a boolean");
-      }
+      if (typeof quoted !== "boolean") errors.push("parseQuotedBlocks must be a boolean");
+      if (errors.length > 0) throw new Error(errors.join("; "));
       // Validate the entire layer before applying either field.
       recentMessageLimit = limit;
-      parseQuotedBlocks = wrapped;
+      parseQuotedBlocks = quoted;
     } catch (error) {
       if (error.code !== "ENOENT") warnings.push(`Code block copy configuration ${path}: ${error.message}`);
     }

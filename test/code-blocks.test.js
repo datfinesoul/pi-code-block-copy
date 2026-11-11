@@ -66,103 +66,6 @@ test("parses every block in order", () => {
   );
 });
 
-test("parses the operator-run example without its wrapper or surrounding prose", () => {
-  const markdown = [
-    "A1 — Next · Operator-run", "", "│ Initialize through each stack’s intended backend.", "│",
-    "│ ```bash", "│ tofu fmt -check", "│ tofu validate", "│ ```", "│",
-    "│ Production review must confirm no replacement/deletion.",
-  ].join("\n");
-  assert.deepEqual(parseCodeBlocks(markdown), [{
-    language: "bash", info: "bash", code: "tofu fmt -check\ntofu validate",
-    startLine: 5, endLine: 8, closed: true,
-  }]);
-});
-
-test("wrapped blocks preserve nested spaces, tabs, trailing spaces, and literal bars", () => {
-  const code = 'def check():\n    if ready:\n        validate()  \n\tprint("│ keep this")\n│ literal leading bar';
-  const markdown = fence("python", code).split("\n").map(line => "│ " + line).join("\n");
-  assert.equal(parseCodeBlocks(markdown)[0].code, code);
-});
-
-test("wrapped blocks remove only the opening fence indent, not a common code indent", () => {
-  const markdown = ["│   ```py", "│       first()", "│         second()", "│  x", "│   ```"].join("\n");
-  assert.equal(parseCodeBlocks(markdown)[0].code, "    first()\n      second()\nx");
-});
-
-test("wrapped blocks preserve bare and prefixed empty lines and whitespace-only lines", () => {
-  const markdown = ["│ ```text", "│", "│ one", "│ ", "│   ", "│ two", "│", "│ ```"].join("\n");
-  assert.equal(parseCodeBlocks(markdown)[0].code, "\none\n\n  \ntwo\n");
-});
-
-test("wrapped blocks retain normal fence matching rules", () => {
-  const markdown = ["│ ~~~~md", "│ ~~~", "│ ```", "│ ~~~~not-a-close", "│ ~~~~~"].join("\n");
-  const [block] = parseCodeBlocks(markdown);
-  assert.equal(block.code, "~~~\n```\n~~~~not-a-close");
-  assert.equal(block.closed, true);
-  assert.deepEqual(parseCodeBlocks("│ ```a`b\n│ text"), []);
-});
-
-test("wrapped and ordinary blocks appear in source order with original line numbers", () => {
-  const markdown = [fence("sh", "one"), "│ ```py", "│   two()", "│ ```", fence("js", "three")].join("\r\n");
-  const blocks = parseCodeBlocks(markdown);
-  assert.deepEqual(blocks.map(block => block.code), ["one", "  two()", "three"]);
-  assert.deepEqual(blocks.map(block => [block.startLine, block.endLine]), [[1, 3], [4, 6], [7, 9]]);
-});
-
-test("unclosed wrapped blocks stop before an unwrapped fence and revisit the boundary", () => {
-  const markdown = ["│ ```py", "│     one()", "```sh", "two", "```"].join("\n");
-  const blocks = parseCodeBlocks(markdown);
-  assert.equal(blocks.length, 2);
-  assert.deepEqual(blocks[0], {
-    language: "py", info: "py", code: "    one()", startLine: 1, endLine: 2, closed: false,
-  });
-  assert.equal(blocks[1].code, "two");
-  assert.equal(blocks[1].startLine, 3);
-});
-
-test("wrapped blocks stop at prose, missing prefixes, or changed wrappers", () => {
-  for (const boundary of ["Outside prose", "", "│missing space", "┃ changed bar", " │ shifted bar"]) {
-    const markdown = ["│ ```sh", "│ echo hi", boundary, "│ not code"].join("\n");
-    const [block] = parseCodeBlocks(markdown);
-    assert.equal(block.code, "echo hi");
-    assert.equal(block.endLine, 2);
-    assert.equal(block.closed, false);
-  }
-});
-
-test("unclosed wrapped blocks handle end of input and an immediate wrapper boundary", () => {
-  const [block] = parseCodeBlocks("│ ```py\n│     one()");
-  assert.equal(block.code, "    one()");
-  assert.equal(block.endLine, 2);
-  assert.equal(block.closed, false);
-  const [empty] = parseCodeBlocks("│ ```py\nOutside prose");
-  assert.equal(empty.code, "");
-  assert.equal(empty.endLine, 1);
-  assert.equal(empty.closed, false);
-});
-
-test("does not recognize other wrapper styles or nested wrappers", () => {
-  for (const prefix of ["┃ ", "│", "│\t", " │ ", "│ │ ", ">>", "> > "]) {
-    assert.deepEqual(parseCodeBlocks(fence("sh", "echo hi").split("\n").map(line => prefix + line).join("\n")), []);
-  }
-});
-
-test("ordinary blocks preserve literal wrapper text in their body", () => {
-  const code = "│ ```sh\n│     echo hi\n│ ```";
-  assert.equal(parseCodeBlocks(["````text", code, "````"].join("\n"))[0].code, code);
-});
-
-test("wrapped parsing defaults to enabled and can be disabled without changing ordinary blocks", () => {
-  const wrapped = "│ ```py\n│     wrapped()\n│ ```";
-  assert.equal(parseCodeBlocks(wrapped)[0].code, "    wrapped()");
-  assert.equal(parseCodeBlocks(wrapped, { parseQuotedBlocks: true })[0].code, "    wrapped()");
-  assert.deepEqual(parseCodeBlocks(wrapped, { parseQuotedBlocks: false }), []);
-  const plain = fence("sh", "  echo hi\n│ literal content\n\tmore");
-  assert.deepEqual(parseCodeBlocks([wrapped, plain].join("\n"), { parseQuotedBlocks: false }), [
-    { ...parseCodeBlocks(plain)[0], startLine: 4, endLine: 8 },
-  ]);
-});
-
 test("parses the Markdown blockquote operator-run example", () => {
   const markdown = [
     "**Legend:** A = Action", "", "**A1 — Next · Operator-run**",
@@ -180,12 +83,20 @@ test("parses the Markdown blockquote operator-run example", () => {
 
 for (const marker of [">", "│"]) {
   test(`${marker} quotes preserve indentation, blank lines, tabs, and literal markers`, () => {
-    const code = ['def check():', '    if ready:', '        validate()  ', '', '\tprint("> and │")', '> literal', '│ literal'];
-    const markdown = [marker + " ```python", ...code.map(line => line ? marker + " " + line : marker), marker + " ```"].join("\n");
+    const code = ["def check():", "    if ready:", "        validate()  ", "", '\tprint("> and │")', "> literal", "│ literal"];
+    const markdown = [marker + " ```python", ...code.map((line) => line ? marker + " " + line : marker), marker + " ```"].join("\n");
     assert.equal(parseCodeBlocks(markdown)[0].code, code.join("\n"));
     assert.deepEqual(parseCodeBlocks(markdown, { parseQuotedBlocks: false }), []);
-    const indented = [marker + "   ~~~py", marker + "       check()", marker + "   ~~~"].join("\n");
-    assert.equal(parseCodeBlocks(indented)[0].code, "    check()");
+  });
+
+  test(`${marker} quotes remove only the opening fence indent`, () => {
+    const markdown = [marker + "   ```py", marker + "       first()", marker + "         second()", marker + "  x", marker + "   ```"].join("\n");
+    assert.equal(parseCodeBlocks(markdown)[0].code, "    first()\n      second()\nx");
+  });
+
+  test(`${marker} quotes preserve bare, prefixed, and whitespace-only empty lines`, () => {
+    const markdown = [marker + " ```text", marker, marker + " one", marker + " ", marker + "   ", marker + " two", marker, marker + " ```"].join("\n");
+    assert.equal(parseCodeBlocks(markdown)[0].code, "\none\n\n  \ntwo\n");
   });
 
   test(`${marker} quotes stop when the marker changes and continue parsing later blocks`, () => {
@@ -196,16 +107,74 @@ for (const marker of [">", "│"]) {
       { language: "py", info: "py", code: "    second()", startLine: 3, endLine: 5, closed: true },
     ]);
     const outside = [marker + " ```sh", marker + " echo first", "Outside prose", fence("sh", "echo last")].join("\n");
-    assert.deepEqual(parseCodeBlocks(outside).map(block => block.code), ["echo first", "echo last"]);
+    assert.deepEqual(parseCodeBlocks(outside).map((block) => block.code), ["echo first", "echo last"]);
   });
 }
 
-test("ordinary and quoted blocks retain order while disabling quotes leaves ordinary content intact", () => {
+test("quoted blocks retain normal fence matching rules", () => {
+  const markdown = ["│ ~~~~md", "│ ~~~", "│ ```", "│ ~~~~not-a-close", "│ ~~~~~"].join("\n");
+  const [block] = parseCodeBlocks(markdown);
+  assert.equal(block.code, "~~~\n```\n~~~~not-a-close");
+  assert.equal(block.closed, true);
+  assert.deepEqual(parseCodeBlocks("│ ```a`b\n│ text"), []);
+});
+
+test("quoted and ordinary blocks appear in source order with original line numbers", () => {
+  const markdown = [fence("sh", "one"), "│ ```py", "│   two()", "│ ```", fence("js", "three")].join("\r\n");
+  const blocks = parseCodeBlocks(markdown);
+  assert.deepEqual(blocks.map((block) => block.code), ["one", "  two()", "three"]);
+  assert.deepEqual(blocks.map((block) => [block.startLine, block.endLine]), [[1, 3], [4, 6], [7, 9]]);
+});
+
+test("unclosed quoted blocks stop before an unquoted fence and revisit the boundary", () => {
+  const markdown = ["│ ```py", "│     one()", "```sh", "two", "```"].join("\n");
+  const blocks = parseCodeBlocks(markdown);
+  assert.equal(blocks.length, 2);
+  assert.deepEqual(blocks[0], {
+    language: "py", info: "py", code: "    one()", startLine: 1, endLine: 2, closed: false,
+  });
+  assert.equal(blocks[1].code, "two");
+  assert.equal(blocks[1].startLine, 3);
+});
+
+test("quoted blocks stop at prose, missing prefixes, or changed quotes", () => {
+  for (const boundary of ["Outside prose", "", "│missing space", "┃ changed bar", " │ shifted bar"]) {
+    const markdown = ["│ ```sh", "│ echo hi", boundary, "│ not code"].join("\n");
+    const [block] = parseCodeBlocks(markdown);
+    assert.equal(block.code, "echo hi");
+    assert.equal(block.endLine, 2);
+    assert.equal(block.closed, false);
+  }
+});
+
+test("unclosed quoted blocks handle end of input and an immediate quote boundary", () => {
+  const [block] = parseCodeBlocks("│ ```py\n│     one()");
+  assert.equal(block.code, "    one()");
+  assert.equal(block.endLine, 2);
+  assert.equal(block.closed, false);
+  const [empty] = parseCodeBlocks("│ ```py\nOutside prose");
+  assert.equal(empty.code, "");
+  assert.equal(empty.endLine, 1);
+  assert.equal(empty.closed, false);
+});
+
+test("does not recognize other quote styles, nested quotes, or list items in quotes", () => {
+  for (const prefix of ["┃ ", "│", "│\t", " │ ", "│ │ ", ">>", "> > ", "> - "]) {
+    assert.deepEqual(parseCodeBlocks(fence("sh", "echo hi").split("\n").map((line) => prefix + line).join("\n")), []);
+  }
+});
+
+test("ordinary blocks preserve literal quote text in their body", () => {
+  const code = "│ ```sh\n│     echo hi\n│ ```";
+  assert.equal(parseCodeBlocks(["````text", code, "````"].join("\n"))[0].code, code);
+});
+
+test("quoted parsing defaults to enabled, and disabling it leaves ordinary blocks intact", () => {
   const plain = fence("sh", "echo ordinary\n> literal quote\n│ literal bar");
-  const markdown = [plain, "> ```py", ">     quoted()", "> ```", "│ ```py", "│     wrapped()", "│ ```"].join("\n");
-  assert.deepEqual(parseCodeBlocks(markdown).map(block => block.code), [
-    "echo ordinary\n> literal quote\n│ literal bar", "    quoted()", "    wrapped()",
-  ]);
+  const markdown = [plain, "> ```py", ">     quoted()", "> ```", "│ ```py", "│     barred()", "│ ```"].join("\n");
+  const codes = ["echo ordinary\n> literal quote\n│ literal bar", "    quoted()", "    barred()"];
+  assert.deepEqual(parseCodeBlocks(markdown).map((block) => block.code), codes);
+  assert.deepEqual(parseCodeBlocks(markdown, { parseQuotedBlocks: true }).map((block) => block.code), codes);
   assert.deepEqual(parseCodeBlocks(markdown, { parseQuotedBlocks: false }), parseCodeBlocks(plain));
 });
 

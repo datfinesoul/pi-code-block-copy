@@ -73,7 +73,7 @@ test("quoted parsing layers merge independently and honor project trust", () => 
 });
 
 for (const value of [0, 1, "true", "false", null, [], {}]) {
-  test(`rejects invalid wrapped setting ${JSON.stringify(value)} without partially applying the layer`, () => {
+  test(`rejects invalid quoted setting ${JSON.stringify(value)} without partially applying the layer`, () => {
     const result = load({
       "/global/code-block-copy.json": '{"recentMessageLimit":5,"parseQuotedBlocks":false}',
       "/project/.pi/code-block-copy.json": JSON.stringify({ recentMessageLimit: 1, parseQuotedBlocks: value }),
@@ -85,7 +85,7 @@ for (const value of [0, 1, "true", "false", null, [], {}]) {
   });
 }
 
-test("an invalid limit does not partially apply a valid wrapped setting", () => {
+test("an invalid limit does not partially apply a valid quoted setting", () => {
   const result = load({
     "/global/code-block-copy.json": '{"parseQuotedBlocks":false}',
     "/project/.pi/code-block-copy.json": '{"recentMessageLimit":0,"parseQuotedBlocks":true}',
@@ -93,6 +93,12 @@ test("an invalid limit does not partially apply a valid wrapped setting", () => 
   assert.equal(result.parseQuotedBlocks, false);
   assert.equal(result.recentMessageLimit, 3);
   assert.equal(result.warnings.length, 1);
+});
+
+test("one warning reports every invalid field in a layer", () => {
+  const result = load({ "/global/code-block-copy.json": '{"recentMessageLimit":0,"parseQuotedBlocks":"no"}' });
+  assert.equal(result.warnings.length, 1);
+  assert.match(result.warnings[0], /recentMessageLimit must be.*; parseQuotedBlocks must be a boolean/);
 });
 
 test("read errors warn without crashing", () => {

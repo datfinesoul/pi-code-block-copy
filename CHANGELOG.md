@@ -13,6 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Copy fenced code blocks inside Markdown blockquotes with the exact `> ` prefix, or with the literal `│ ` prefix. Preserve code indentation, tabs, and literal markers.
 - Accept a bare `>` or `│` as an empty line in its matching quote. Unclosed blocks stop where the prefix ends or changes.
 - Configure `parseQuotedBlocks` through global or trusted project settings. The default is `true`. Set it to `false` to exclude quoted blocks before numbering and recent-message counting.
+- Report every invalid field of a configuration file in one warning.
+
+### Changed
+
+- If a configuration file contains an invalid value, the extension now ignores the whole file, including its valid settings.
 
 ## [0.5.1] - 2026-11-10
 

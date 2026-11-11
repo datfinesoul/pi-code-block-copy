@@ -67,7 +67,7 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 - Press <kbd>Ctrl</kbd>+<kbd>\`</kbd> to run the same copy flow without typing the command.
 - When the recent view contains exactly one block, `/cbc` copies it immediately. The notification shows `/cbc all` as the command to browse all blocks.
 - Copied blocks are raw code: no fences, no trailing newline, and no indentation that existed only to nest the fence in a list. Selecting several blocks joins them with a blank line.
-- By default, CBC includes fenced blocks inside Markdown blockquotes with the exact `> ` prefix. It also supports the literal `│ ` prefix. CBC removes the opening fence's prefix from each code line and applies its usual fence-indent removal. Other code indentation, tabs, and literal markers remain unchanged. A bare `>` or `│` represents an empty line in its matching quote. If the prefix ends or changes before the closing fence, the block stops there. Nested quotes and other prefix formats are not supported.
+- By default, `/cbc` includes fenced blocks inside Markdown blockquotes with the exact `> ` prefix. It also supports the literal `│ ` prefix. The extension removes the opening fence's prefix from each code line and applies its usual fence-indent removal. Other code indentation, tabs, and literal markers remain unchanged. A bare `>` or `│` represents an empty line in its matching quote. If the prefix ends or changes before the closing fence, the block stops there. Nested quotes, list items inside quotes (`> - ```sh`), and other prefix formats are not supported.
 
 ## Configuration
 
