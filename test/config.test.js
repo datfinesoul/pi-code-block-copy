@@ -18,6 +18,7 @@ function load(files = {}, projectTrusted = true) {
 test("defaults to three with missing files", () => {
   const result = load();
   assert.equal(result.recentMessageLimit, 3);
+  assert.equal(result.parseQuotedBlocks, true);
   assert.deepEqual(result.warnings, []);
 });
 
@@ -54,6 +55,51 @@ for (const text of ['{', 'null', '[]', '1']) {
     assert.equal(result.warnings.length, 1);
   });
 }
+
+test("quoted parsing layers merge independently and honor project trust", () => {
+  const files = {
+    "/bundled/config.json": '{"recentMessageLimit":3,"parseQuotedBlocks":true}',
+    "/global/code-block-copy.json": '{"parseQuotedBlocks":false}',
+    "/project/.pi/code-block-copy.json": '{"recentMessageLimit":1}',
+  };
+  assert.equal(load(files).parseQuotedBlocks, false);
+  assert.equal(load(files).recentMessageLimit, 1);
+  files["/project/.pi/code-block-copy.json"] = '{"parseQuotedBlocks":true}';
+  assert.equal(load(files).parseQuotedBlocks, true);
+  assert.equal(load(files, false).parseQuotedBlocks, false);
+  files["/global/code-block-copy.json"] = '{}';
+  files["/bundled/config.json"] = '{"parseQuotedBlocks":false}';
+  assert.equal(load(files, false).parseQuotedBlocks, false);
+});
+
+for (const value of [0, 1, "true", "false", null, [], {}]) {
+  test(`rejects invalid quoted setting ${JSON.stringify(value)} without partially applying the layer`, () => {
+    const result = load({
+      "/global/code-block-copy.json": '{"recentMessageLimit":5,"parseQuotedBlocks":false}',
+      "/project/.pi/code-block-copy.json": JSON.stringify({ recentMessageLimit: 1, parseQuotedBlocks: value }),
+    });
+    assert.equal(result.recentMessageLimit, 5);
+    assert.equal(result.parseQuotedBlocks, false);
+    assert.equal(result.warnings.length, 1);
+    assert.match(result.warnings[0], /parseQuotedBlocks must be a boolean/);
+  });
+}
+
+test("an invalid limit does not partially apply a valid quoted setting", () => {
+  const result = load({
+    "/global/code-block-copy.json": '{"parseQuotedBlocks":false}',
+    "/project/.pi/code-block-copy.json": '{"recentMessageLimit":0,"parseQuotedBlocks":true}',
+  });
+  assert.equal(result.parseQuotedBlocks, false);
+  assert.equal(result.recentMessageLimit, 3);
+  assert.equal(result.warnings.length, 1);
+});
+
+test("one warning reports every invalid field in a layer", () => {
+  const result = load({ "/global/code-block-copy.json": '{"recentMessageLimit":0,"parseQuotedBlocks":"no"}' });
+  assert.equal(result.warnings.length, 1);
+  assert.match(result.warnings[0], /recentMessageLimit must be.*; parseQuotedBlocks must be a boolean/);
+});
 
 test("read errors warn without crashing", () => {
   const result = loadConfig({ bundledPath: "/bundled", agentDir: "/global", cwd: "/project", projectTrusted: false,

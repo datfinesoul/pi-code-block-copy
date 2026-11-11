@@ -99,6 +99,51 @@ export const copyToClipboard = async text => { copied.push(text); };
     assert.ok(notifications.some(item => item.level === "warning" && /integer from 1 to 20/.test(item.text)));
     ctx.isProjectTrusted = () => false;
     await command.handler("", ctx);
+
+    // Re-read the toggle on each invocation, before numbering or counting messages.
+    ctx.isProjectTrusted = () => true;
+    const quoted = "> ```py\n>     quoted()\n> ```";
+    const ordinary = "```sh\n  ordinary\n```";
+    const setQuoted = value => writeFileSync(configPath, JSON.stringify({ recentMessageLimit: 1, parseQuotedBlocks: value }));
+    branch = [message("```\nolder\n```"), message(quoted)];
+    setQuoted(false);
+    await command.handler("", ctx);
+    assert.equal(host.copied.at(-1), "older");
+    await shortcut.handler(ctx);
+    assert.equal(host.copied.at(-1), "older");
+    setQuoted(true);
+    await command.handler("", ctx);
+    assert.equal(host.copied.at(-1), "    quoted()");
+
+    branch = [message("```\nolder\n```"), message([quoted, ordinary].join("\n"))];
+    setQuoted(false);
+    await command.handler("1", ctx);
+    assert.equal(host.copied.at(-1), "  ordinary");
+    await command.handler("2", ctx);
+    assert.match(notifications.at(-1).text, /No code block 2/);
+    ctx.ui.custom = async factory => {
+      const picker = factory({ terminal: { rows: 80 }, requestRender() {} }, { fg: (_c, text) => text, bold: text => text }, {}, () => {});
+      const render = () => picker.render(160).join("\n");
+      assert.match(render(), /all history/);
+      assert.match(render(), /1 sh\s+· ordinary/);
+      assert.match(render(), /2 code\s+· older/);
+      assert.doesNotMatch(render(), /quoted\(\)/);
+      picker.handleInput("\t");
+      assert.doesNotMatch(render(), /older|quoted\(\)/);
+      return null;
+    };
+    await command.handler("all", ctx);
+    setQuoted(true);
+    await command.handler("1", ctx);
+    assert.equal(host.copied.at(-1), "    quoted()");
+    await command.handler("2", ctx);
+    assert.equal(host.copied.at(-1), "  ordinary");
+    ctx.ui.custom = async factory => {
+      const picker = factory({ terminal: { rows: 80 }, requestRender() {} }, { fg: (_c, text) => text, bold: text => text }, {}, () => {});
+      assert.match(picker.render(160).join("\n"), /quoted\(\)/);
+      return null;
+    };
+    await shortcut.handler(ctx);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

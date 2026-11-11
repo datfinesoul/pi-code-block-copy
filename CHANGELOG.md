@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-11
+
+### Added
+
+- Copy fenced code blocks inside Markdown blockquotes with the exact `> ` prefix, or with the literal `│ ` prefix. Preserve code indentation, tabs, and literal markers.
+- Accept a bare `>` or `│` as an empty line in its matching quote. Unclosed blocks stop where the prefix ends or changes.
+- Configure `parseQuotedBlocks` through global or trusted project settings. The default is `true`. Set it to `false` to exclude quoted blocks before numbering and recent-message counting.
+- Report every invalid field of a configuration file in one warning.
+
+### Changed
+
+- If a configuration file contains an invalid value, the extension now ignores the whole file, including its valid settings.
+
 ## [0.5.1] - 2026-11-10
 
 ### Fixed
@@ -60,7 +73,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Fenced code block parser supporting backtick and tilde fences and dedenting content nested in lists.
 - Automated tests and open source project documentation.
 
-[Unreleased]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/datfinesoul/pi-code-block-copy/compare/v0.3.0...v0.4.0

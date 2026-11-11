@@ -67,6 +67,7 @@ pi --no-extensions --extension ./extensions/code-block-copy/index.ts
 - Press <kbd>Ctrl</kbd>+<kbd>\`</kbd> to run the same copy flow without typing the command.
 - When the recent view contains exactly one block, `/cbc` copies it immediately. The notification shows `/cbc all` as the command to browse all blocks.
 - Copied blocks are raw code: no fences, no trailing newline, and no indentation that existed only to nest the fence in a list. Selecting several blocks joins them with a blank line.
+- By default, `/cbc` includes fenced blocks inside Markdown blockquotes with the exact `> ` prefix. It also supports the literal `│ ` prefix. The extension removes the opening fence's prefix from each code line and applies its usual fence-indent removal. Other code indentation, tabs, and literal markers remain unchanged. A bare `>` or `│` represents an empty line in its matching quote. If the prefix ends or changes before the closing fence, the block stops there. Nested quotes, list items inside quotes (`> - ```sh`), and other prefix formats are not supported.
 
 ## Configuration
 
@@ -78,7 +79,7 @@ Settings merge from lowest to highest priority:
 | Global | `~/.pi/agent/code-block-copy.json` (follows `PI_CODING_AGENT_DIR`) |
 | Project | `<project>/.pi/code-block-copy.json`, only when Pi trusts the project |
 
-A higher-priority `recentMessageLimit` replaces the lower-priority value. Missing fields retain the lower-priority value. Invalid values or files produce a warning and retain the lower-priority value. The extension reads these settings each time you use `/cbc` or the shortcut.
+Higher-priority settings replace lower-priority values for each field. Missing fields retain the lower-priority value. An invalid value or file produces a warning and leaves that entire configuration layer unapplied. The extension reads these settings each time you use `/cbc` or the shortcut.
 
 ### Change the recent view
 
@@ -92,11 +93,24 @@ Add this setting to the global or project file:
 
 This setting includes only the latest assistant message with non-empty code blocks. If that message contains exactly one block, `/cbc` and the shortcut copy it immediately. If it contains multiple blocks, the picker opens. Use `/cbc all` to browse all history without quick copy. Press <kbd>Tab</kbd> in the picker to switch between recent messages and all history.
 
+### Disable quoted blocks
+
+Add this setting to the global or trusted project file:
+
+```json
+{
+  "parseQuotedBlocks": false
+}
+```
+
+The default is `true`. Set the field to `false` to ignore blocks with the `> ` or `│ ` prefix. Ordinary fenced blocks remain unchanged. The setting applies to recent history, all history, direct block selection, and the keyboard shortcut. Disabled blocks do not receive numbers or count toward the recent-message limit. Changes apply on the next invocation without `/reload`.
+
 ### Field reference
 
 | Field | Default | Accepted values | Meaning |
 |---|---|---|---|
 | `recentMessageLimit` | `3` | Integers from `1` to `20` | Number of recent assistant messages with non-empty code blocks to include |
+| `parseQuotedBlocks` | `true` | Booleans `true` or `false` | Include fenced code blocks with the exact `> ` or `│ ` prefix |
 
 Zero, negative numbers, fractions, and values above 20 are invalid. The limit counts messages, not individual blocks.
 
